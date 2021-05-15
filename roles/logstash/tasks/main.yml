@@ -1,0 +1,34 @@
+---
+- name: pull image on remote
+  become: yes
+  docker_image:
+    name: docker.elastic.co/logstash/logstash-oss:7.8.0
+    source: pull
+
+- name: ensure config directory is created
+  file:
+    path: /usr/share/logstash/pipeline
+    state: directory
+
+- name: ensure config is uploaded
+  copy:
+    src: pipeline
+    dest: /usr/share/logstash/pipeline
+
+- name: run docker container
+  become: yes
+  docker_container:
+    name: logstash
+    image: docker.elastic.co/logstash/logstash-oss:7.8.0
+    detach: yes
+    auto_remove: no
+    ports:
+      - "5044:5044"
+      - "5000:5000/tcp"
+      - "5000:5000/udp"
+      - "9600:9600"
+    volumes:
+      - /usr/share/logstash/pipeline:/usr/share/logstash/pipeline:ro
+    restart_policy: on-failure
+    restart_retries: 10
+    state: started

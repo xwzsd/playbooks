@@ -1,0 +1,32 @@
+---
+- name: pull image on remote
+  become: yes
+  docker_image:
+    name: docker.elastic.co/beats/filebeat-oss:7.8.0
+    source: pull
+
+- name: ensure config directory is created
+  file:
+    path: /usr/share/filebeat/data
+    state: directory
+
+- name: ensure config is uploaded
+  copy:
+    src: filebeat.yml
+    dest: /usr/share/filebeat/filebeat.yml
+
+- name: run docker container
+  become: yes
+  docker_container:
+    name: filebeat
+    image: docker.elastic.co/beats/filebeat-oss:7.8.0
+    detach: yes
+    auto_remove: no
+
+    volumes:
+      - /usr/share/filebeat/data:/usr/share/filebeat/data
+      - /usr/share/filebeat/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
+      - /var/log/app.log:/var/log/app.log:ro
+    restart_policy: on-failure
+    restart_retries: 10
+    state: started
